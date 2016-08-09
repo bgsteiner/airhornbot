@@ -191,6 +191,16 @@ var WOW *SoundCollection = &SoundCollection{
 	},
 }
 
+var MOAN *SoundCollection = &SoundCollection{
+	Prefix: "moan",
+	Commands: []string{
+		"!moan",
+	},
+	Sounds: []*Sound{
+		createSound("default", 1000, 250),
+	},
+}
+
 var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	AIRHORN,
 	KHALED,
@@ -199,6 +209,7 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	COW,
 	BIRTHDAY,
 	WOW,
+	MOAN,
 }
 
 // Create a Sound struct
