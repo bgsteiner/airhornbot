@@ -198,6 +198,32 @@ var MOAN *SoundCollection = &SoundCollection{
 	},
 	Sounds: []*Sound{
 		createSound("1", 1000, 250),
+		createSound("2", 1000, 250),
+		createSound("3", 1000, 250),
+		createSound("4", 1000, 250),
+		createSound("5", 1000, 250),
+	},
+}
+
+var SANDSTORM *SoundCollection = &SoundCollection{
+	Prefix: "moan",
+	Commands: []string{
+		"!ss",
+		"!sandstorm",
+	},
+	Sounds: []*Sound{
+		createSound("toy1", 1000, 250),
+		createSound("toy2", 1000, 250),
+		createSound("toy3", 1000, 250),
+		createSound("toy4", 1000, 250),
+		createSound("toy5", 1000, 250),
+		createSound("1", 1000, 250),
+		createSound("2", 1000, 250),
+		createSound("3", 1000, 250),
+		createSound("4", 1000, 250),
+		createSound("5", 1000, 250),
+		createSound("6", 1000, 250),
+		createSound("7", 1000, 250),
 	},
 }
 
@@ -210,6 +236,7 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	BIRTHDAY,
 	WOW,
 	MOAN,
+	SANDSTORM,
 }
 
 // Create a Sound struct
