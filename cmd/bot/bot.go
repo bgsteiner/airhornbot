@@ -197,7 +197,7 @@ var MOAN *SoundCollection = &SoundCollection{
 		"!moan",
 	},
 	Sounds: []*Sound{
-		createSound("default", 1000, 250),
+		createSound("1", 1000, 250),
 	},
 }
 
