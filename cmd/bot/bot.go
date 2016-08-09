@@ -206,7 +206,7 @@ var MOAN *SoundCollection = &SoundCollection{
 }
 
 var SANDSTORM *SoundCollection = &SoundCollection{
-	Prefix: "moan",
+	Prefix: "sandstorm",
 	Commands: []string{
 		"!ss",
 		"!sandstorm",
