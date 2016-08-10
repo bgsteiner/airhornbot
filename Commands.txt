@@ -1,0 +1,27 @@
+Default Commands
+!airhorn
+
+!anotha
+!anothaone
+
+!johncena
+!cena
+
+!ethan
+!eb
+!ethanbradberry
+!h3h3
+
+!stanislav
+!stan
+
+!birthday
+!bday
+
+!wowthatscool
+!wtc
+
+Added Commands
+!moan
+!sandstorm
+!ss
