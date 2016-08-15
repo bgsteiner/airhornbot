@@ -227,6 +227,27 @@ var SANDSTORM *SoundCollection = &SoundCollection{
 	},
 }
 
+var FLANZY *SoundCollection = &SoundCollection{
+	Prefix: "flanzy",
+	Commands: []string{
+		"!iflanzy",
+		"!flanzy",
+	},
+	Sounds: []*Sound{
+		createSound("burp", 1000, 250),
+		createSound("hole", 1000, 250),
+		createSound("moist1", 1000, 250),
+		createSound("moist2", 1000, 250),
+		createSound("slurp1", 1000, 250),
+		createSound("slurp2", 1000, 250),
+		createSound("slurp3", 1000, 250),
+		createSound("slurp4", 1000, 250),
+		createSound("slurp5", 1000, 250),
+		createSound("slurp6", 1000, 250),
+		createSound("slurp7", 1000, 250),
+	},
+}
+
 var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	AIRHORN,
 	KHALED,
@@ -237,6 +258,7 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	WOW,
 	MOAN,
 	SANDSTORM,
+	FLANZY,
 }
 
 // Create a Sound struct
