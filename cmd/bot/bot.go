@@ -236,8 +236,8 @@ var FLANZY *SoundCollection = &SoundCollection{
 	Sounds: []*Sound{
 		createSound("burp", 1000, 250),
 		createSound("hole", 1000, 250),
-		createSound("moist1", 1000, 250),
-		createSound("moist2", 1000, 250),
+		createSound("moist1", 10, 250),
+		createSound("moist2", 10, 250),
 		createSound("slurp1", 1000, 250),
 		createSound("slurp2", 1000, 250),
 		createSound("slurp3", 1000, 250),
@@ -245,6 +245,7 @@ var FLANZY *SoundCollection = &SoundCollection{
 		createSound("slurp5", 1000, 250),
 		createSound("slurp6", 1000, 250),
 		createSound("slurp7", 1000, 250),
+		createSound("spooning", 1000, 250),
 	},
 }
 
@@ -666,12 +667,10 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	
 	if len(m.Content) <= 0 || (m.Content[0] != '!' && len(m.Mentions) < 1) {
 		return
 	}
-
-	msg := strings.Replace(m.ContentWithMentionsReplaced(), s.State.Ready.User.Username, "username", 1)
-	parts := strings.Split(strings.ToLower(msg), " ")
 
 	channel, _ := discord.State.Channel(m.ChannelID)
 	if channel == nil {
@@ -691,6 +690,9 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}).Warning("Failed to grab guild")
 		return
 	}
+	
+	msg := strings.Replace(m.ContentWithMentionsReplaced(), s.State.Ready.User.Username, "username", 1)
+	parts := strings.Split(strings.ToLower(msg), " ")
 
 	// If this is a mention, it should come from the owner (otherwise we don't care)
 	if len(m.Mentions) > 0 && m.Author.ID == OWNER && len(parts) > 0 {
@@ -730,6 +732,29 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 	}
+	
+	// reply with formatted sound list
+	cmds := "``` **Airhorn Bot Commands** \n !airhorn \n !anotha , !anothaone \n !johncena , !cena \n !ethan , !eb , !ethanbradberry , !h3h3 \n !stanislav , !stan \n !birthday , !bday \n !wowthatscool , !wtc \n !moan \n !sandstorm , !ss \n !flanzy , !iflanzy ```"
+	
+	if parts[0] == "!list" {
+		log.Info("Listing Commands")
+		if len(parts) > 1 {
+			for _, coll := range COLLECTIONS {
+				if scontains("!"+parts[1], coll.Commands...) {
+					soundList := "``` **Sounds for " + parts[1] + "** \n"
+					for _, s := range coll.Sounds {
+						soundList = soundList + s.Name + "\n"
+					}
+					soundList = soundList + "```"
+					_, _ = s.ChannelMessageSend(m.ChannelID, soundList)
+					return
+				}
+			}
+		}
+		_, _ = s.ChannelMessageSend(m.ChannelID, cmds)
+		return
+	}
+	
 }
 
 func main() {
