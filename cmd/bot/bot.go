@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	//"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	//"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -18,6 +20,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
 	"github.com/dustin/go-humanize"
+	"github.com/boltdb/bolt"
 	redis "gopkg.in/redis.v3"
 )
 
@@ -249,6 +252,36 @@ var FLANZY *SoundCollection = &SoundCollection{
 	},
 }
 
+var REK *SoundCollection = &SoundCollection{
+	Prefix: "rek",
+	Commands: []string{
+		"!rek",
+	},
+	Sounds: []*Sound{
+		createSound("law", 1000, 250),
+	},
+}
+var FITNESS *SoundCollection = &SoundCollection{
+	Prefix: "fitness",
+	Commands: []string{
+		"!fit",
+		"!fitness",
+	},
+	Sounds: []*Sound{
+		createSound("1", 1000, 250),
+		createSound("begin", 1000, 250),
+		createSound("bing", 1000, 250),
+		createSound("bring", 1000, 250),
+		createSound("curlup", 1000, 250),
+		createSound("over", 1000, 250),
+		createSound("pacer", 1000, 250),
+		createSound("run", 1000, 250),
+		createSound("running", 1000, 250),
+		createSound("start", 1000, 250),
+		createSound("updown", 1000, 250),
+	},
+}
+
 var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	AIRHORN,
 	KHALED,
@@ -260,6 +293,137 @@ var COLLECTIONS []*SoundCollection = []*SoundCollection{
 	MOAN,
 	SANDSTORM,
 	FLANZY,
+	REK,
+	FITNESS,
+}
+
+var db *bolt.DB
+
+func CreateBucket(name []byte){
+	db, err := bolt.Open("data.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+    // store some data
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists(name)
+		if err != nil {
+			return err
+		}
+		return nil
+    })
+
+    if err != nil {
+        log.Fatal(err)
+    }
+	
+	
+}
+
+func checkList(m *discordgo.MessageCreate) bool{
+	channel, _ := discord.State.Channel(m.ChannelID)
+	if channel == nil {
+		log.Warning("Failed to grab channel with id " + m.ChannelID)
+		return false
+	}
+	var channelID = channel.ID
+	
+	db, err := bolt.Open("data.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	is := false
+	db.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket([]byte("ignoreList"))
+
+		b.ForEach(func(k, v []byte) error {
+			if string(k) == channelID{
+				is = true
+			}
+			return nil
+		})
+		return nil
+	})
+	return is
+}
+
+func check(m *discordgo.MessageCreate) bool{
+	channel, _ := discord.State.Channel(m.ChannelID)
+	if channel == nil {
+		log.Warning("Failed to grab channel with id " + m.ChannelID)
+		return false
+	}
+	var channelID = channel.ID
+	
+	db, err := bolt.Open("data.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	is := false
+	db.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket([]byte("ignoreList"))
+
+		b.ForEach(func(k, v []byte) error {
+			if string(k) == channelID{
+				is = true
+			}
+			return nil
+		})
+		return nil
+	})
+	return is
+}
+
+func addToList(m *discordgo.MessageCreate){
+	channel, _ := discord.State.Channel(m.ChannelID)
+	if channel == nil {
+		log.Warning("Failed to grab channel with id " + m.ChannelID)
+		return
+	}
+	var channelName = channel.Name
+	var channelID = channel.ID
+	log.Info("Ignoring " + channelName)
+	
+	db, err := bolt.Open("data.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	
+	db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("ignoreList"))
+		err := b.Put([]byte(channelID), []byte(channelName))
+		return err
+	})
+}
+
+func removeFromList(m *discordgo.MessageCreate){
+	channel, _ := discord.State.Channel(m.ChannelID)
+	if channel == nil {
+		log.Warning("Failed to grab channel with id " + m.ChannelID)
+		return
+	}
+	var channelName = channel.Name
+	var channelID = channel.ID
+	log.Info("Ignoring " + channelName)
+	
+	db, err := bolt.Open("data.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	
+	db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("ignoreList"))
+		err := b.Delete([]byte(channelID))
+		return err
+	})
 }
 
 // Create a Sound struct
@@ -543,12 +707,12 @@ func scontains(key string, options ...string) bool {
 	return false
 }
 
-func calculateAirhornsPerSecond(cid string) {
+func calculateAirhornsPerSecond( m *discordgo.MessageCreate) {
 	current, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
 	time.Sleep(time.Second * 10)
 	latest, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
 
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
+	discord.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
 }
 
 func displayBotStats(cid string) {
@@ -595,24 +759,24 @@ func utilSumRedisKeys(keys []string) int {
 	return total
 }
 
-func displayUserStats(cid, uid string) {
+func displayUserStats(cid, uid string, s *discordgo.Session) {
 	keys, err := rcli.Keys(fmt.Sprintf("airhorn:*:user:%s:sound:*", uid)).Result()
 	if err != nil {
 		return
 	}
 
 	totalAirhorns := utilSumRedisKeys(keys)
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Total Airhorns: %v", totalAirhorns))
+	_, _ = s.ChannelMessageSend(cid, fmt.Sprintf("Total Airhorns: %v", totalAirhorns))
 }
 
-func displayServerStats(cid, sid string) {
+func displayServerStats(cid, sid string, s *discordgo.Session) {
 	keys, err := rcli.Keys(fmt.Sprintf("airhorn:*:guild:%s:sound:*", sid)).Result()
 	if err != nil {
 		return
 	}
 
 	totalAirhorns := utilSumRedisKeys(keys)
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Total Airhorns: %v", totalAirhorns))
+	_, _ = s.ChannelMessageSend(cid, fmt.Sprintf("Total Airhorns: %v", totalAirhorns))
 }
 
 func utilGetMentioned(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.User {
@@ -624,9 +788,9 @@ func utilGetMentioned(s *discordgo.Session, m *discordgo.MessageCreate) *discord
 	return nil
 }
 
-func airhornBomb(cid string, guild *discordgo.Guild, user *discordgo.User, cs string) {
+func airhornBomb(cid string, guild *discordgo.Guild, user *discordgo.User, cs string, s *discordgo.Session) {
 	count, _ := strconv.Atoi(cs)
-	discord.ChannelMessageSend(cid, ":ok_hand:"+strings.Repeat(":trumpet:", count))
+	_, _ = s.ChannelMessageSend(cid, ":ok_hand:"+strings.Repeat(":trumpet:", count))
 
 	// Cap it at something
 	if count > 100 {
@@ -652,17 +816,41 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 		displayBotStats(m.ChannelID)
 	} else if scontains(parts[1], "stats") {
 		if len(m.Mentions) >= 2 {
-			displayUserStats(m.ChannelID, utilGetMentioned(s, m).ID)
+			displayUserStats(m.ChannelID, utilGetMentioned(s, m).ID, s)
 		} else if len(parts) >= 3 {
-			displayUserStats(m.ChannelID, parts[2])
+			displayUserStats(m.ChannelID, parts[2], s)
 		} else {
-			displayServerStats(m.ChannelID, g.ID)
+			displayServerStats(m.ChannelID, g.ID, s)
 		}
-	} else if scontains(parts[1], "bomb") && len(parts) >= 4 {
-		airhornBomb(m.ChannelID, g, utilGetMentioned(s, m), parts[3])
+	} else if scontains(parts[1], "bomb") && len(parts) >= 3 {
+		airhornBomb(m.ChannelID, g, utilGetMentioned(s, m), parts[2], s)
 	} else if scontains(parts[1], "aps") {
-		s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-		go calculateAirhornsPerSecond(m.ChannelID)
+		_, _ = s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
+		go calculateAirhornsPerSecond(m)
+	} else if scontains(parts[1], "sudo") {
+		input := ""
+		for i, v := range parts {
+			if i > 1 {
+				input += v + " "
+			}
+		}
+		_, _ = s.ChannelMessageSend(m.ChannelID, input)
+	} else if scontains(parts[1], "ignore") {
+		channel, _ := discord.State.Channel(m.ChannelID)
+		if channel == nil {
+			log.Warning("Failed to grab channel with id " + m.ChannelID)
+			return
+		}
+		addToList(m)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Added #" + channel.Name + " to the ignore list")
+	} else if scontains(parts[1], "listen") {
+		channel, _ := discord.State.Channel(m.ChannelID)
+		if channel == nil {
+			log.Warning("Failed to grab channel with id " + m.ChannelID)
+			return
+		}
+		removeFromList(m)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Removed #" + channel.Name + " to the ignore list")
 	}
 }
 
@@ -693,9 +881,10 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	
 	msg := strings.Replace(m.ContentWithMentionsReplaced(), s.State.Ready.User.Username, "username", 1)
 	parts := strings.Split(strings.ToLower(msg), " ")
+	cmds := "``` **Airhorn Bot Commands** \n !airhorn \n !anotha , !anothaone \n !johncena , !cena \n !ethan , !eb , !ethanbradberry , !h3h3 \n !stanislav , !stan \n !birthday , !bday \n !wowthatscool , !wtc \n !moan \n !sandstorm , !ss \n !flanzy , !iflanzy \n !fit , !fitness \n !rek ```"
 
 	// If this is a mention, it should come from the owner (otherwise we don't care)
-	if len(m.Mentions) > 0 && m.Author.ID == OWNER && len(parts) > 0 {
+	if len(m.Mentions) >= 1{
 		mentioned := false
 		for _, mention := range m.Mentions {
 			mentioned = (mention.ID == s.State.Ready.User.ID)
@@ -705,7 +894,11 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		if mentioned {
-			handleBotControlMessages(s, m, parts, guild)
+			if  m.Author.ID == OWNER && len(parts) > 1{
+				handleBotControlMessages(s, m, parts, guild)
+			}else if len(parts) == 1{
+				_, _ = s.ChannelMessageSend(m.ChannelID, cmds)
+			}
 		}
 		return
 	}
@@ -724,6 +917,11 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 
 				if sound == nil {
+					if parts[0] == "!rek" {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "** Banned "+parts[1]+" **")
+						go enqueuePlay(m.Author, guild, coll, sound)
+						
+					}
 					return
 				}
 			}
@@ -734,9 +932,8 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	
 	// reply with formatted sound list
-	cmds := "``` **Airhorn Bot Commands** \n !airhorn \n !anotha , !anothaone \n !johncena , !cena \n !ethan , !eb , !ethanbradberry , !h3h3 \n !stanislav , !stan \n !birthday , !bday \n !wowthatscool , !wtc \n !moan \n !sandstorm , !ss \n !flanzy , !iflanzy ```"
 	
-	if parts[0] == "!list" {
+	if parts[0] == "!sounds" {
 		log.Info("Listing Commands")
 		if len(parts) > 1 {
 			for _, coll := range COLLECTIONS {
@@ -758,6 +955,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func main() {
+
 	var (
 		Token      = flag.String("t", "", "Discord Authentication Token")
 		Redis      = flag.String("r", "", "Redis Connection String")
@@ -767,6 +965,23 @@ func main() {
 		err        error
 	)
 	flag.Parse()
+	
+	f, err := os.OpenFile("airhornbot.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+	log.Info("Log Started")
+	log.Info("Connecting to DB")
+	dbName := []byte("ignoreList")
+	CreateBucket(dbName);
+	dbName = []byte("modList")
+	CreateBucket(dbName);
+	dbName = []byte("muteList")
+	CreateBucket(dbName);
+	log.Info("DB Setup")
 
 	if *Owner != "" {
 		OWNER = *Owner
@@ -824,7 +1039,7 @@ func main() {
 
 	// We're running!
 	log.Info("AIRHORNBOT is ready to horn it up.")
-
+	
 	// Wait for a signal to quit
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)

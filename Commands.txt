@@ -27,3 +27,4 @@ Added Commands
 !ss
 !flanzy
 !iflanzy
+!ban
