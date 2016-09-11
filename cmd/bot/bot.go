@@ -141,6 +141,7 @@ func handleBotControlMessages(s *discordgo.Session, m *discordgo.MessageCreate, 
 				input += v + " "
 			}
 		}
+		log.Info("Sudo: " + input)
 		_, _ = s.ChannelMessageSend(m.ChannelID, input)
 	}
 }
@@ -185,9 +186,9 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if mentioned {
 			if  m.Author.ID == OWNER && len(parts) > 1{
 				handleBotControlMessages(s, m, parts, guild)
+				return
 			}
 		}
-		return
 	}
 	
 	if !strings.HasPrefix(m.Content, "!") && len(m.Mentions) < 1 {
@@ -197,16 +198,12 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	baseCommand := strings.Replace(parts[0], PREFIX, "", 1)
 	
 	if(baseCommand == CHATCOMMAND){
-		if(len(parts)==1){
-			for _, acoll := range SUBCOMMANDS {
-				if scontains("help", acoll.Commands...) {
-					_, _ = s.ChannelMessageSend(m.ChannelID,
-						acoll.Function(s, m, parts, guild))
-				}
+		if(isMod(m.Author.ID, channel.GuildID) || m.Author.ID == OWNER || m.Author.ID == guild.OwnerID){
+			if(len(parts)==1 || parts[1]=="help"){
+				_, _ = s.ChannelMessageSend(m.ChannelID,getHelp())
+				return
 			}
-			return
-		}
-		if(isMod(m.Author.ID, channel.GuildID) || m.Author.ID == OWNER){
+		
 			log.Info("Processing Command " + parts[1])
 			subCommand := parts[1]
 			for _, acoll := range SUBCOMMANDS {
@@ -240,7 +237,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	//Sound Commands
 	for _, coll := range COLLECTIONS {
-		if scontains(parts[0], coll.Commands...) {
+		if scontains(baseCommand, coll.Commands...) {
 
 			// If they passed a specific sound effect, find and select that (otherwise play nothing)
 			var sound *Sound
@@ -252,10 +249,9 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 
 				if sound == nil {
-					if parts[0] == "!rek" {
+					if baseCommand == "rek" {
 						_, _ = s.ChannelMessageSend(m.ChannelID, "** Banned "+parts[1]+" **")
 						go enqueuePlay(m.Author, guild, coll, sound)
-						
 					}
 					return
 				}
