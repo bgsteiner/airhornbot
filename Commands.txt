@@ -27,4 +27,7 @@ Added Commands
 !ss
 !flanzy
 !iflanzy
-!ban
+!rickroll
+!rr
+!eatmydiction
+!emd
